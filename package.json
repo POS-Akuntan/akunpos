@@ -1,0 +1,31 @@
+{
+  "name": "akunpos",
+  "version": "1.0.0",
+  "description": "BackEnd",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/POS-Akuntan/akunpos.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/POS-Akuntan/akunpos/issues"
+  },
+  "homepage": "https://github.com/POS-Akuntan/akunpos#readme",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.46.1",
+    "akunpos": "file:",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "joi": "^17.13.3",
+    "mongoose": "^8.8.2",
+    "pg": "^8.13.1"
+  }
+}
