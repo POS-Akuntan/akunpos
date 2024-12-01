@@ -8,7 +8,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Konfigurasi CORS
-app.use(cors());
+app.use(
+  cors({
+    origin: ["*"],
+    methods: ["GET", "POST", "PUT", "OPTIONS", "DELETE"],
+    credentials: true,
+    optionsSuccessStatus: 200,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 
 
 // Middleware
