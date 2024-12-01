@@ -14,5 +14,7 @@ router.get('/products', getProducts);           // Ambil semua produk
 router.get('/products/:id', getProductById);    // Ambil produk berdasarkan ID
 router.put('/products/:id', updateProduct);     // Update produk berdasarkan ID
 router.delete('/products/:id', deleteProduct);  // Hapus produk berdasarkan ID
+router.patch('/products/:id', updateProduct); // Update stok produk berdasarkan ID
+
 
 module.exports = router;
