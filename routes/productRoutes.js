@@ -7,8 +7,6 @@ const {
     deleteProduct,
 } = require('../controllers/productController');
 
-const productRoutes = require('./routes/productroutes');
-app.use('/api', productRoutes); // Pastikan ini aktif
 
 const router = express.Router();
 
