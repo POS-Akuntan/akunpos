@@ -3,21 +3,19 @@ const Joi = require('joi'); // Untuk validasi data menggunakan Joi
 
 // Schema validasi transaksi menggunakan Joi
 const transactionSchema = Joi.object({
-    user_id: Joi.string().guid().required(),               // ID pengguna harus UUID yang valid
-    total_amount: Joi.number().required().min(0),           // Total transaksi minimal 0
-    payment_method: Joi.string().valid('cash', 'card').required(), // Metode pembayaran: cash atau card
-    transaction_date: Joi.date().required(),                // Tanggal transaksi harus valid
+    payment_method: Joi.string(), // Metode pembayaran: cash atau card
+    transaction_date: Joi.date().default(() => new Date()), // Default ke waktu saat ini
+    total_amount: Joi.number().min(0).default(0),                 // Total transaksi opsional, default 0
 });
 
-// Tambah transaksi baru
 exports.createTransaction = async (req, res) => {
-    // Validasi input menggunakan Joi
-    const { error } = transactionSchema.validate(req.body);
+    const { error, value } = transactionSchema.validate(req.body, { abortEarly: false });
     if (error) {
         return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { user_id, total_amount, payment_method, transaction_date } = req.body;
+    const { payment_method, transaction_date, total_amount } = value; // Menggunakan value hasil validasi
+    const user_id = req.user.id; // Ambil user_id dari token
 
     try {
         const result = await pool.query(
@@ -32,22 +30,35 @@ exports.createTransaction = async (req, res) => {
     }
 };
 
-// Ambil semua transaksi
+
+
+
+// Ambil semua transaksi beserta nama user
 exports.getTransactions = async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM transactions ORDER BY transaction_date DESC');
+        const result = await pool.query(`
+            SELECT transactions.*, users.name AS user_name
+            FROM transactions
+            JOIN users ON transactions.user_id = users.id
+            ORDER BY transactions.transaction_date DESC
+        `);
         res.status(200).json(result.rows);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
 
-// Ambil transaksi berdasarkan ID
+// Ambil transaksi berdasarkan ID beserta nama user
 exports.getTransactionById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const result = await pool.query('SELECT * FROM transactions WHERE id = $1', [id]);
+        const result = await pool.query(`
+            SELECT transactions.*, users.name AS user_name
+            FROM transactions
+            JOIN users ON transactions.user_id = users.id
+            WHERE transactions.id = $1
+        `, [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Transaction not found' });
@@ -59,6 +70,7 @@ exports.getTransactionById = async (req, res) => {
     }
 };
 
+
 // Update transaksi berdasarkan ID
 exports.updateTransaction = async (req, res) => {
     const { id } = req.params;
@@ -69,7 +81,7 @@ exports.updateTransaction = async (req, res) => {
         return res.status(400).json({ message: error.details[0].message });
     }
 
-    const { user_id, total_amount, payment_method, transaction_date } = req.body;
+    const { user_id, payment_method, transaction_date, total_amount } = req.body;
 
     try {
         const result = await pool.query(
@@ -105,3 +117,4 @@ exports.deleteTransaction = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+

@@ -6,13 +6,23 @@ const {
     updateTransaction,
     deleteTransaction,
 } = require('../controllers/transactionController');
+const { authenticate } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.post('/transactions', createTransaction);           // Tambah transaksi baru
-router.get('/transactions', getTransactions);             // Ambil semua transaksi
-router.get('/transactions/:id', getTransactionById);      // Ambil transaksi berdasarkan ID
-router.put('/transactions/:id', updateTransaction);       // Update transaksi berdasarkan ID
-router.delete('/transactions/:id', deleteTransaction);    // Hapus transaksi berdasarkan ID
+// Tambah transaksi baru
+router.post('/transactions', authenticate, createTransaction);
+
+// Ambil semua transaksi
+router.get('/transactions', authenticate, getTransactions);
+
+// Ambil transaksi berdasarkan ID
+router.get('/transactions/:id', authenticate, getTransactionById);
+
+// Update transaksi berdasarkan ID
+router.put('/transactions/:id', authenticate, updateTransaction);
+
+// Hapus transaksi berdasarkan ID
+router.delete('/transactions/:id', authenticate, deleteTransaction);
 
 module.exports = router;
