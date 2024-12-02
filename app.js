@@ -18,7 +18,7 @@ const session = require('express-session');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Mengizinkan semua origin
+// Konfigurasi CORS
 app.use(cors());
 
 // Konfigurasi express-session
@@ -53,3 +53,46 @@ app.use(passport.session());
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });
+
+//try antonio bonapate INI ANTON
+const express = require("express");
+const bodyParser = require("body-parser");
+const midtransClient = require("midtrans-client");
+
+app.use(bodyParser.json());
+
+// Midtrans configuration
+const coreApi = new midtransClient.CoreApi({
+  isProduction: false, // Sandbox mode
+  serverKey: "YOUR_SERVER_KEY",
+  clientKey: "YOUR_CLIENT_KEY",
+});
+
+app.post("/create-transaction", async (req, res) => {
+  const { order_id, gross_amount, items } = req.body;
+
+  const parameter = {
+    transaction_details: {
+      order_id: order_id, // Unique ID for each transaction
+      gross_amount: gross_amount, // Total payment
+    },
+    item_details: items, // Array of item objects
+    customer_details: {
+      first_name: "Customer",
+      email: "customer@example.com",
+    },
+    enabled_payments: ["qris"], // Restrict to QRIS
+  };
+
+  try {
+    const transaction = await coreApi.createTransaction(parameter);
+    res.json({ token: transaction.token });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Transaction creation failed.");
+  }
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
+
+
