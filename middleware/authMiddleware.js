@@ -42,6 +42,41 @@
 //     authorize,
 // };
 
+//the last starts here ==============================================================================
+// const jwt = require('jsonwebtoken');
+
+// // Middleware untuk memverifikasi token JWT
+// function authenticate(req, res, next) {
+//     const token = req.headers.authorization?.split(' ')[1]; // Ambil token dari header
+
+//     if (!token) {
+//         return res.status(401).json({ message: 'Akses ditolak. Token tidak ditemukan.' });
+//     }
+
+//     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+//         if (err) {
+//             return res.status(403).json({ message: 'Token tidak valid.' });
+//         }
+
+//         req.user = decoded; // Simpan payload token di request
+//         next();
+//     });
+// }
+
+// // Middleware untuk mengecek role user
+// function authorize(roles) {
+//     return (req, res, next) => {
+//         if (!roles.includes(req.user.role)) {
+//             return res.status(403).json({ message: 'Akses ditolak. Role tidak sesuai.' });
+//         }
+//         next();
+//     };
+// }
+
+
+
+// module.exports = { authenticate, authorize };
+
 
 const jwt = require('jsonwebtoken');
 
@@ -56,6 +91,13 @@ function authenticate(req, res, next) {
     jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(403).json({ message: 'Token tidak valid.' });
+        }
+
+        // Validasi apakah akun aktif
+        if (decoded.is_active === false || decoded.is_active === 'false') {
+            return res.status(403).json({
+                message: 'Akun Anda tidak aktif. Silakan hubungi administrator.',
+            });
         }
 
         req.user = decoded; // Simpan payload token di request
