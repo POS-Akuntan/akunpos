@@ -42,6 +42,49 @@ const register = async (req, res) => {
 };
 
 // Fungsi Login
+// const login = async (req, res) => {
+//     const { email, password } = req.body;
+
+//     try {
+//         // Cari pengguna berdasarkan email
+//         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+//         const user = result.rows[0];
+
+//         if (!user) {
+//             return res.status(404).json({ error: 'Email atau password salah.' });
+//         }
+
+//         // Periksa password
+//         const isPasswordValid = await bcrypt.compare(password, user.password);
+//         if (!isPasswordValid) {
+//             return res.status(401).json({ error: 'Email atau password salah.' });
+//         }
+
+//         // Buat JWT
+//         const token = jwt.sign(
+//             { id: user.id, email: user.email, role: user.role },
+//             process.env.JWT_SECRET,
+//             { expiresIn: '8h' }
+//         );
+
+//         res.status(200).json({
+//             message: 'Login berhasil.',
+//             token,
+//             user: { 
+//                 id: user.id, 
+//                 name: user.name, 
+//                 email: user.email, 
+//                 role: user.role, 
+//                 phone_number: user.phone_number 
+//             },
+//         });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: 'Gagal login.', details: err.message });
+//     }
+// };
+
+// Fungsi Login
 const login = async (req, res) => {
     const { email, password } = req.body;
 
@@ -54,6 +97,11 @@ const login = async (req, res) => {
             return res.status(404).json({ error: 'Email atau password salah.' });
         }
 
+        // Periksa apakah akun pengguna aktif
+        if (user.is_active === 'false') { // Pastikan nilai `is_active` di database tersimpan sebagai string atau boolean
+            return res.status(403).json({ error: 'Akun Anda tidak aktif. Silakan hubungi administrator.' });
+        }
+
         // Periksa password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
@@ -62,7 +110,12 @@ const login = async (req, res) => {
 
         // Buat JWT
         const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
+            {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                is_active: user.is_active, // Tambahkan `is_active` ke payload token
+            },
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
         );
@@ -83,6 +136,7 @@ const login = async (req, res) => {
         res.status(500).json({ error: 'Gagal login.', details: err.message });
     }
 };
+
 
 // Fungsi Get All Users
 const getAllUsers = async (req, res) => {
