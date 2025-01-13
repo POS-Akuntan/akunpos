@@ -18,36 +18,11 @@ router.put('/users/:id/change-password',authenticate, changePassword);
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 // Endpoint callback Google
-// router.get(
-//     '/google/callback',
-//     passport.authenticate('google', { failureRedirect: '/login' }),
-//     (req, res) => {
-//         // Generate JWT token
-//         const user = req.user; // `req.user` berasal dari Passport
-//         const token = jwt.sign(
-//             { id: user.id, email: user.email, role: user.role },
-//             process.env.JWT_SECRET,
-//             { expiresIn: '8h' }
-//         );
-
-//         // Kirim respons dengan token dan informasi pengguna
-//         res.status(200).json({
-//             message: 'Login Google berhasil.',
-//             token,
-//             user: {
-//                 id: user.id,
-//                 name: user.name,
-//                 email: user.email,
-//                 role: user.role,
-//             },
-//         });
-//     }
-// );
-
 router.get(
     '/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
     (req, res) => {
+        // Generate JWT token
         const user = req.user; // `req.user` berasal dari Passport
         const token = jwt.sign(
             { id_users: user.id_users, email: user.email, role: user.role },
@@ -72,22 +47,14 @@ router.get(
 );
 
 
-// Logout
-// router.get('/logout', (req, res) => {
-//     req.logout(err => {
-//         if (err) return res.status(500).json({ error: 'Gagal logout.' });
-//         res.status(200).json({ message: 'Logout berhasil.' });
-//     });
-// });
 
+
+// Logout
 router.get('/logout', (req, res) => {
     req.logout(err => {
         if (err) return res.status(500).json({ error: 'Gagal logout.' });
-
-        // Opsional: Tambahkan logika untuk menghapus session jika ada
         res.status(200).json({ message: 'Logout berhasil.' });
     });
 });
-
 
 module.exports = router;
