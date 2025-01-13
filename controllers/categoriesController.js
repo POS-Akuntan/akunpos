@@ -49,7 +49,7 @@ exports.getCategoryById = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const result = await pool.query('SELECT * FROM categories WHERE id = $1', [id]);
+        const result = await pool.query('SELECT * FROM categories WHERE id_categories = $1', [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Category not found' });
@@ -74,10 +74,21 @@ exports.updateCategory = async (req, res) => {
     const { name, description } = req.body;
 
     try {
+        // Cek apakah nama kategori sudah ada (kecuali milik ID yang sedang diupdate)
+        const nameCheck = await pool.query(
+            `SELECT id_categories FROM categories WHERE name = $1 AND id_categories != $2`,
+            [name, id]
+        );
+
+        if (nameCheck.rows.length > 0) {
+            return res.status(400).json({ message: 'Category name already exists' });
+        }
+
+        // Lakukan update jika tidak ada konflik nama
         const result = await pool.query(
             `UPDATE categories 
              SET name = $1, description = $2, updated_at = NOW() 
-             WHERE id = $3 RETURNING *`,
+             WHERE id_categories = $3 RETURNING *`,
             [name, description, id]
         );
 
@@ -87,20 +98,17 @@ exports.updateCategory = async (req, res) => {
 
         res.status(200).json(result.rows[0]);
     } catch (error) {
-        if (error.code === '23505') { // Duplicate key
-            res.status(400).json({ message: 'Category name already exists' });
-        } else {
-            res.status(500).json({ message: error.message });
-        }
+        res.status(500).json({ message: error.message });
     }
 };
+
 
 // Hapus kategori berdasarkan ID
 exports.deleteCategory = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const result = await pool.query('DELETE FROM categories WHERE id = $1 RETURNING *', [id]);
+        const result = await pool.query('DELETE FROM categories WHERE id_categories = $1 RETURNING *', [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Category not found' });

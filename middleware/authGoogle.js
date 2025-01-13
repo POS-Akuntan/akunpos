@@ -19,9 +19,9 @@ passport.use(
                 if (user.rows.length === 0) {
                     // Jika user belum ada, buat baru
                     user = await pool.query(
-                        `INSERT INTO users (id, name, email, role, created_at, updated_at)
-                        VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW()) RETURNING id, name, email, role`,
-                        [name, email, 'user']
+                        `INSERT INTO users (id_users, name, email, role, created_at, updated_at)
+                        VALUES (gen_random_uuid(), $1, $2, $3, NOW(), NOW()) RETURNING id_users, name, email, role`,
+                        [name, email, 'users']
                     );
                 } else {
                     user = user.rows[0];
@@ -36,12 +36,12 @@ passport.use(
 );
 
 passport.serializeUser((user, done) => {
-    done(null, user.id);
+    done(null, user.id_users);
 });
 
 passport.deserializeUser(async (id, done) => {
     try {
-        const user = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        const user = await pool.query('SELECT * FROM users WHERE id_users = $1', [id]);
         done(null, user.rows[0]);
     } catch (err) {
         done(err, null);

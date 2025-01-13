@@ -24,11 +24,14 @@ const register = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
+        // Set nilai default is_active = true
+        const isActive = 'true';
+
         // Simpan user ke database
         const result = await pool.query(
-            `INSERT INTO users (id, name, email, password, role, phone_number, created_at, updated_at)
-            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id, name, email, role, phone_number`,
-            [name, email, hashedPassword, role || 'user', phone_number]
+            `INSERT INTO users (id_users, name, email, password, role, phone_number, is_active, created_at, updated_at)
+            VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING id_users, name, email, role, phone_number, is_active`,
+            [name, email, hashedPassword, role || 'kasir', phone_number, isActive]
         );
 
         res.status(201).json({
@@ -40,6 +43,8 @@ const register = async (req, res) => {
         res.status(500).json({ error: 'Gagal registrasi pengguna.', details: err.message });
     }
 };
+
+
 
 // Fungsi Login
 const login = async (req, res) => {
@@ -54,6 +59,14 @@ const login = async (req, res) => {
             return res.status(404).json({ error: 'Email atau password salah.' });
         }
 
+        // Konversi is_active dari string ke boolean
+        const isActive = user.is_active === 'true';
+
+        // Cek apakah pengguna aktif
+        if (!isActive) {
+            return res.status(403).json({ error: 'Akun Anda dinonaktifkan. Silakan hubungi administrator.' });
+        }
+
         // Periksa password
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
@@ -62,7 +75,7 @@ const login = async (req, res) => {
 
         // Buat JWT
         const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
+            { id_users: user.id_users, email: user.email, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '8h' }
         );
@@ -71,11 +84,12 @@ const login = async (req, res) => {
             message: 'Login berhasil.',
             token,
             user: { 
-                id: user.id, 
+                id_users: user.id_users, 
                 name: user.name, 
                 email: user.email, 
                 role: user.role, 
-                phone_number: user.phone_number 
+                phone_number: user.phone_number,
+                is_active: isActive,
             },
         });
     } catch (err) {
@@ -84,12 +98,14 @@ const login = async (req, res) => {
     }
 };
 
+
+
 // Fungsi Get All Users
 const getAllUsers = async (req, res) => {
     try {
         // Query untuk mendapatkan semua data pengguna
         const result = await pool.query(
-            `SELECT id, name, email, role, phone_number, created_at, updated_at FROM users`
+            `SELECT id_users, name, email, role, phone_number, created_at, updated_at, is_active FROM users`
         );
 
         // Jika tidak ada data
@@ -114,7 +130,7 @@ const updateUser = async (req, res) => {
 
     try {
         // Periksa apakah pengguna ada
-        const existingUser = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+        const existingUser = await pool.query('SELECT * FROM users WHERE id_users = $1', [id]);
         if (existingUser.rows.length === 0) {
             return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
         }
@@ -129,8 +145,8 @@ const updateUser = async (req, res) => {
         const result = await pool.query(
             `UPDATE users 
              SET name = $1, email = $2, password = $3, role = $4, phone_number = $5, updated_at = NOW()
-             WHERE id = $6 
-             RETURNING id, name, email, role, phone_number, created_at, updated_at`,
+             WHERE id_users = $6 
+             RETURNING id_users, name, email, role, phone_number, created_at, updated_at`,
             [name, email, hashedPassword, role, phone_number, id]
         );
 
@@ -167,6 +183,83 @@ const deleteUser = async (req, res) => {
     }
 };
 
+// Fungsi untuk menonaktifkan atau mengaktifkan kasir
+const toggleActiveStatus = async (req, res) => {
+    const { id } = req.params; // ID pengguna dari parameter URL
+    const { is_active } = req.body; // Status baru untuk is_active
+
+    try {
+        // Periksa apakah pengguna ada
+        const existingUser = await pool.query('SELECT * FROM users WHERE id_users = $1', [id]);
+        if (existingUser.rows.length === 0) {
+            return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+        }
+
+        // Periksa apakah pengguna adalah kasir (role 'kasir') sebelum mengubah status
+        const user = existingUser.rows[0];
+        if (user.role !== 'kasir') {
+            return res.status(400).json({ error: 'Hanya kasir yang dapat dinonaktifkan.' });
+        }
+
+        // Update status is_active
+        const result = await pool.query(
+            `UPDATE users
+             SET is_active = $1, updated_at = NOW()
+             WHERE id_users = $2
+             RETURNING id_users, name, email, role, phone_number, is_active, created_at, updated_at`,
+            [is_active, id]
+        );
+
+        res.status(200).json({
+            message: 'Status pengguna berhasil diperbarui.',
+            user: result.rows[0],
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Gagal memperbarui status pengguna.', details: err.message });
+    }
+};
+
+// Fungsi Ubah Password
+const changePassword = async (req, res) => {
+    const { id } = req.params; // ID pengguna dari parameter URL
+    const { oldPassword, newPassword } = req.body; // Password lama dan baru dari body request
+
+    try {
+        // Periksa apakah pengguna ada
+        const result = await pool.query('SELECT * FROM users WHERE id_users = $1', [id]);
+        const user = result.rows[0];
+
+        if (!user) {
+            return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+        }
+
+        // Periksa apakah password lama benar
+        const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+        if (!isPasswordValid) {
+            return res.status(400).json({ error: 'Password lama salah.' });
+        }
+
+        // Hash password baru
+        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password di database
+        await pool.query(
+            `UPDATE users 
+             SET password = $1, updated_at = NOW() 
+             WHERE id_users = $2`,
+            [hashedNewPassword, id]
+        );
+
+        res.status(200).json({
+            message: 'Password berhasil diubah.',
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Gagal mengubah password.', details: err.message });
+    }
+};
+
 
 module.exports = {
     register,
@@ -174,5 +267,7 @@ module.exports = {
     getAllUsers,
     updateUser, // Tambahkan fungsi update user
     deleteUser, // Tambahkan fungsi delete user
+    toggleActiveStatus,
+    changePassword,
 };
 
